@@ -1,3 +1,4 @@
+import json  # <-- ADD THIS - it's missing!
 import subprocess
 import tempfile
 import threading
@@ -5,10 +6,13 @@ import tkinter as tk
 import tkinter.messagebox as messagebox
 import webbrowser as wb
 from queue import Queue
-
 import customtkinter as ctk
 import requests
 from PIL import Image, ImageEnhance, ImageGrab, ImageTk
+import  sys
+import time
+
+time = time(10)
 
 screenshot = ImageGrab.grab()
 ctk.set_appearance_mode("dark")
@@ -84,7 +88,7 @@ class bigimagebox:
 
         if right - left < 5 or bottom - top < 5:
             messagebox.showwarning(
-                "Selection Too Small", "pls draw something bigger than you own high."
+                "Selection Too Small", "Please draw a larger selection area."
             )
             return
 
@@ -100,7 +104,7 @@ class bigimagebox:
         except Exception as e:
             print(f"Cropping failed: {e}")
             messagebox.showerror(
-                "Cropping Error", f"hmm.... idk dude your geuss is as good as myn:\n{e}"
+                "Cropping Error", f"Failed to crop image:\n{e}"
             )
 
 
@@ -123,7 +127,7 @@ class bluat:
 
         ctk.CTkButton(
             self.toolbar,
-            text="Search",
+            text="🔍 Search",
             command=self.search,
             fg_color="#89b4fa",
             hover_color="#74c7ec",
@@ -132,7 +136,7 @@ class bluat:
 
         ctk.CTkButton(
             self.toolbar,
-            text="ocr",
+            text="📝 OCR",
             command=self.ocr,
             fg_color="#a6e3a1",
             hover_color="#94e2d5",
@@ -141,7 +145,7 @@ class bluat:
 
         ctk.CTkButton(
             self.toolbar,
-            text="clean",
+            text="🧹 Clear",
             command=self.clear_text,
             fg_color="#f38ba8",
             hover_color="#eba0ac",
@@ -154,6 +158,7 @@ class bluat:
         self.main.grid_rowconfigure(1, weight=1)
         self.main.grid_columnconfigure(0, weight=1)
 
+        # Display image
         img = Image.open(self.img_path)
         self.ctk_img = ctk.CTkImage(img, size=(700, 300))
 
@@ -164,44 +169,53 @@ class bluat:
         )
         self.image_label.grid(row=0, column=0, pady=10)
 
+        # Text area
         self.textbox = ctk.CTkTextbox(
             self.main, fg_color="#1a1b26", text_color="#c0caf5", corner_radius=10
         )
         self.textbox.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
         self.textbox.configure(font=("JetBrains Mono", 12))
 
+        # Status bar
         self.status = ctk.CTkLabel(
-            self.root, text="Ready", anchor="w", fg_color="#181825", height=25
+            self.root, text="✅ Ready", anchor="w", fg_color="#181825", height=25
         )
         self.status.grid(row=2, column=0, sticky="ew")
 
     def search(self):
         confirm = messagebox.askyesno(
-            "upload Image", "this will be uploaded to a an external server. Continue?"
+            "Upload Image", "This will be uploaded to an external server. Continue?"
         )
 
         if confirm:
-            self.status.configure(text="Uploading for search...")
-            YesImageMe(self.img_path)
-            self.status.configure(text="opeing in browser")
+            self.status.configure(text="📤 Uploading for search...")
+            try:
+                YesImageMe(self.img_path)
+                self.status.configure(text="🌐 Opened in browser")
+            except Exception as e:
+                self.status.configure(text=f"❌ Upload failed: {str(e)[:50]}")
 
     def ocr(self):
-        self.status.configure(text="Running OCR...")
+        self.status.configure(text="🔍 Running OCR...")
         threading.Thread(target=self._ocr_worker, daemon=True).start()
 
     def _ocr_worker(self):
-        text = textmebro(self.img_path)
-        text = format_text(text)
-        self.root.after(0, self._update_textbox, text)
+        try:
+            text = textmebro(self.img_path)
+            text = format_text(text)
+            self.root.after(0, self._update_textbox, text)
+            self.root.after(0, lambda: self.status.configure(text="✅ OCR complete"))
+        except Exception as e:
+            self.root.after(0, lambda: self.status.configure(text=f"❌ OCR failed: {str(e)[:50]}"))
+            self.root.after(0, lambda: self._update_textbox(f"Error: {str(e)}"))
 
     def _update_textbox(self, text):
         self.textbox.delete("1.0", "end")
         self.textbox.insert("1.0", text)
-        self.status.configure(text="OCR complete")
 
     def clear_text(self):
         self.textbox.delete("1.0", "end")
-        self.status.configure(text="Cleared")
+        self.status.configure(text="🧹 Cleared")
 
 
 class YesImageMe:
@@ -209,7 +223,8 @@ class YesImageMe:
         self.img_path = img_path
 
         self.url = "https://tmpfiles.org/api/v1/upload"
-        responses = requests.post(self.url, files={"file": open(self.img_path, "rb")})
+        with open(self.img_path, "rb") as f:  # Fixed: use context manager
+            responses = requests.post(self.url, files={"file": f})
 
         data = responses.json()
         url = data["data"]["url"]
@@ -228,46 +243,62 @@ class osrthing:
 
     def start_worker(self):
         """Start persistent OCR subprocess"""
-        self.process = subprocess.Popen(
-            ["python", "sub-osr-pro.py"],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            bufsize=1,
-        )
-
-        # Start listener thread
-        threading.Thread(target=self._listen, daemon=True).start()
+        try:
+            self.process = subprocess.Popen(
+                ["python", "sub-osr-pro.py"],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1,
+            )
+            # Start listener thread
+            threading.Thread(target=self._listen, daemon=True).start()
+            print("✅ OCR worker started", file=sys.stderr)
+        except Exception as e:
+            print(f"❌ Failed to start OCR worker: {e}", file=sys.stderr)
 
     def _listen(self):
         """Listen for responses from subprocess"""
         while True:
-            line = self.process.stdout.readline()
-            if not line:
-                break
             try:
-                result = json.loads(line)
-                self.callback_queue.put(result)
-            except:
-                pass
+                line = self.process.stdout.readline()
+                if not line:
+                    print("OCR worker process ended", file=sys.stderr)
+                    break
+                try:
+                    result = json.loads(line)
+                    self.callback_queue.put(result)
+                except json.JSONDecodeError:
+                    print(f"Invalid JSON from worker: {line[:100]}", file=sys.stderr)
+            except Exception as e:
+                print(f"Error in listener: {e}", file=sys.stderr)
+                break
 
     def ocr_async(self, img_path, callback):
         """Non-blocking OCR"""
+        if not self.process or self.process.poll() is not None:
+            callback("", "OCR worker not running")
+            return
+            
         request = json.dumps({"image_path": img_path})
         self.process.stdin.write(request + "\n")
         self.process.stdin.flush()
 
-        # Check for result in callback queue (in another thread)
+        # Check for result in callback queue
         def check_result():
             while True:
                 try:
                     result = self.callback_queue.get(timeout=0.1)
                     if result:
-                        callback(result.get("text", ""), result.get("error"))
+                        # Handle both success and error cases
+                        if result.get("success"):
+                            callback(result.get("text", ""), None)
+                        else:
+                            callback("", result.get("error", "Unknown error"))
                         break
                 except:
-                    if not self.process.poll() is None:
+                    if self.process and self.process.poll() is not None:
                         callback("", "OCR process died")
                         break
                     continue
@@ -287,14 +318,41 @@ def textmebro(img_path):
         result_queue.put((text, error))
 
     ocr_manager.ocr_async(img_path, callback)
-    text, error = result_queue.get(timeout=30)
+    
+    try:
+        text, error = result_queue.get(timeout=30)  # 30 second timeout
+        if error:
+            return f"OCR Error: {error}"
+        return text if text else "No text detected"
+    except:
+        return "OCR timeout - try again"
 
-    if error:
-        return f"OCR Error: {error}"
-    return text
+
+def format_text(text):
+    """Clean up OCR text but preserve structure"""
+    if not text:
+        return "No text detected"
+    
+    # Don't strip aggressively - preserve code structure
+    # Just remove excessive empty lines
+    lines = text.split('\n')
+    
+    # Remove trailing empty lines but keep indentation
+    while lines and not lines[-1].strip():
+        lines.pop()
+    
+    # Remove leading empty lines
+    while lines and not lines[0].strip():
+        lines.pop(0)
+    
+    # Don't strip individual lines - preserve code indentation!
+    # Just return joined lines
+    return '\n'.join(lines)
 
 
 if __name__ == "__main__":
+    import sys  # Added for stderr printing
+    
     boxa = tk.Tk()
     selector = bigimagebox(boxa)
     boxa.mainloop()
