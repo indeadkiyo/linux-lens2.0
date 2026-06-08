@@ -1,0 +1,21 @@
+[project]
+name = "linux-lens2-0"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "kiyo",email = "kiyo-slip@proton.me"}
+]
+license = "mit"
+requires-python = ">=3.14"
+dependencies = [
+    "pillow (>=12.2.0,<13.0.0)",
+    "customtkinter (>=5.2.2,<6.0.0)",
+    "requests (>=2.34.2,<3.0.0)"
+]
+
+[tool.poetry]
+packages = [{include = "linux_lens2"}]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
