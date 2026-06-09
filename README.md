@@ -3,15 +3,15 @@
 ## hi, how you doing? 
 ### idk know why are you here but hope you enjoy
 
-> this is just a copy of google lens but less good
-!
-> made it to work with any distro since mostly relay on py and not system related stuff
-!
-> btw the test file as llm help since this is my first or proper first project i didn't get how formatting work for ocr
-!
-> i did my best not to use llm in the main file tho it still cross refereeing from the test file so there would be some 
-!
-> ps the test file can stop working or not work at all (the main one works ) since i still wanna experment with it 
+-  this is just a copy of google lens but less good
+
+-  made it to work with any distro since mostly relay on py and not system related stuff
+
+-  btw the test file as llm help since this is my first or proper first project i didn't get how formatting work for ocr
+
+- i did my best not to use llm in the main file tho it still cross refereeing from the test file so there would be some 
+
+-  ps the test file can stop working or not work at all (the main one works ) since i still wanna experment with it 
 
 ---
 
