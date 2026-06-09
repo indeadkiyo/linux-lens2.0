@@ -12,7 +12,6 @@ from PIL import Image, ImageEnhance, ImageGrab, ImageTk
 import  sys
 import time
 
-time = time(10)
 
 screenshot = ImageGrab.grab()
 ctk.set_appearance_mode("dark")
