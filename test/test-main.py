@@ -227,7 +227,7 @@ class YesImageMe:
 
         data = responses.json()
         url = data["data"]["url"]
-        direct_url = url.replace("http://tmpfiles.org/", "https://tmpfiles.org/dl/")
+        direct_url = url.replace("https://tmpfiles.org/", "https://tmpfiles.org/dl/")
         print(direct_url)
 
         link = f"https://imgops.com/{direct_url}"
