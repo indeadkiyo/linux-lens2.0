@@ -24,7 +24,7 @@ A desktop app that lets you:
 
 ---
 ## gui:
-<img src="https://raw.githubusercontent.com/indeadkiyo/linux-lens2.0/main/Screenshot_20260609_190721.png">
+<img src="https://github.com/indeadkiyo/linux-lens2.0/blob/main/Screenshot_20260609_190721.png?raw=true">
 ---
 ## how to set up: (linux)
 
