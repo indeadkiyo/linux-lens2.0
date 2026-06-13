@@ -203,32 +203,28 @@ def smart_formatting(text):
     
     return '\n'.join(cleaned_lines)
 
+reader = easyocr.Reader(
+    ['en'],
+    gpu=False,
+    verbose=False
+)
+
 def ocr_with_layout(img_path):
-    """Extract text with layout preservation and smart formatting"""
-    reader = easyocr.Reader(['en'], gpu=False, verbose=False)
-    
-    # Get image dimensions for scaling
     img = Image.open(img_path)
     img_width, img_height = img.size
-    
-    # Get detailed results (with bounding boxes)
+
     result = reader.readtext(
         img_path,
-        detail=1,  # Get bounding boxes
-        paragraph=False,  # Don't auto-group (we'll do it)
+        detail=1,
+        paragraph=False,
         width_ths=0.5,
         add_margin=0.1
     )
-    
-    # Step 1: Format with layout preservation
+
     text = format_with_layout(result, img_width, img_height)
-    
-    # Step 2: Detect and format code blocks
     text = detect_and_format_code(text)
-    
-    # Step 3: Smart cleanup
     text = smart_formatting(text)
-    
+
     return text
 
 def main():
