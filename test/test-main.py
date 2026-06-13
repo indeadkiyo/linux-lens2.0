@@ -3,6 +3,7 @@ import subprocess
 import tempfile
 import threading
 import tkinter as tk
+from sub_osr_pro import ocr_with_layout
 import tkinter.messagebox as messagebox
 import webbrowser as wb
 from queue import Queue
@@ -234,97 +235,13 @@ class YesImageMe:
         wb.open(link)
 
 
-class osrthing:
-    def __init__(self):
-        self.process = None
-        self.callback_queue = Queue()
-        self.start_worker()
-
-    def start_worker(self):
-        """Start persistent OCR subprocess"""
-        try:
-            self.process = subprocess.Popen(
-                ["python", "sub-osr-pro.py"],
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                bufsize=1,
-            )
-            # Start listener thread
-            threading.Thread(target=self._listen, daemon=True).start()
-            print("✅ OCR worker started", file=sys.stderr)
-        except Exception as e:
-            print(f"❌ Failed to start OCR worker: {e}", file=sys.stderr)
-
-    def _listen(self):
-        """Listen for responses from subprocess"""
-        while True:
-            try:
-                line = self.process.stdout.readline()
-                if not line:
-                    print("OCR worker process ended", file=sys.stderr)
-                    break
-                try:
-                    result = json.loads(line)
-                    self.callback_queue.put(result)
-                except json.JSONDecodeError:
-                    print(f"Invalid JSON from worker: {line[:100]}", file=sys.stderr)
-            except Exception as e:
-                print(f"Error in listener: {e}", file=sys.stderr)
-                break
-
-    def ocr_async(self, img_path, callback):
-        """Non-blocking OCR"""
-        if not self.process or self.process.poll() is not None:
-            callback("", "OCR worker not running")
-            return
-            
-        request = json.dumps({"image_path": img_path})
-        self.process.stdin.write(request + "\n")
-        self.process.stdin.flush()
-
-        # Check for result in callback queue
-        def check_result():
-            while True:
-                try:
-                    result = self.callback_queue.get(timeout=0.1)
-                    if result:
-                        # Handle both success and error cases
-                        if result.get("success"):
-                            callback(result.get("text", ""), None)
-                        else:
-                            callback("", result.get("error", "Unknown error"))
-                        break
-                except:
-                    if self.process and self.process.poll() is not None:
-                        callback("", "OCR process died")
-                        break
-                    continue
-
-        threading.Thread(target=check_result, daemon=True).start()
-
-
-# Global OCR manager
-ocr_manager = osrthing()
-
 
 def textmebro(img_path):
-    """Synchronous wrapper for backward compatibility"""
-    result_queue = Queue()
-
-    def callback(text, error):
-        result_queue.put((text, error))
-
-    ocr_manager.ocr_async(img_path, callback)
-    
     try:
-        text, error = result_queue.get(timeout=30)  # 30 second timeout
-        if error:
-            return f"OCR Error: {error}"
-        return text if text else "No text detected"
-    except:
-        return "OCR timeout - try again"
+        text = ocr_with_layout(img_path)
+        return text if text else "i did my best ok i did not get a text"
+    except Exception as e:
+        return f"ocr error:{e}"
 
 
 def format_text(text):
