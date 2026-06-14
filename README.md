@@ -36,7 +36,7 @@ A desktop app that lets you:
 - ho you also need pytorch for the ocr (the ocr is easyocr)
   [https://github.com/jaidedai/easyocr]
 
-- i am trying to add appimage or .bin file but for now its hmm........
+
 ---
 
 ## kde
