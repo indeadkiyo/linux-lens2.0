@@ -11,6 +11,15 @@ import customtkinter as ctk
 import requests
 from PIL import Image, ImageEnhance, ImageGrab, ImageTk
 
+nordic_colors = {
+    "primary": "#5e81ac",      # muted blue
+    "primary_hover": "#81a1c1", # lighter blue
+    "success": "#a3be8c",       # muted green
+    "success_hover": "#b48ead", # soft purple
+    "danger": "#bf616a",        # muted red
+    "danger_hover": "#d08770",  # warm orange
+}
+
 screenshot = ImageGrab.grab()
 
 ctk.set_appearance_mode("dark")
@@ -124,27 +133,30 @@ class bluat:
             self.toolbar,
             text="search",
             command=self.search,
-            fg_color="#89b4fa",
-            hover_color="#74c7ec",
+            fg_color=nordic_colors["primary"],
+            hover_color=nordic_colors["primary_hover"],
             width=100,
+            corner_radius=6,  # nordic minimalism
         ).pack(side="left", padx=5, pady=5)
 
         ctk.CTkButton(
             self.toolbar,
             text="ocr",
             command=self.ocr,
-            fg_color="#a6e3a1",
-            hover_color="#94e2d5",
+            fg_color=nordic_colors["success"],
+            hover_color=nordic_colors["success_hover"],
             width=100,
+            corner_radius=6,
         ).pack(side="left", padx=5, pady=5)
 
         ctk.CTkButton(
             self.toolbar,
             text="clear",
             command=self.clear_text,
-            fg_color="#f38ba8",
-            hover_color="#eba0ac",
+            fg_color=nordic_colors["danger"],
+            hover_color=nordic_colors["danger_hover"],
             width=100,
+            corner_radius=6,
         ).pack(side="left", padx=5, pady=5)
 
         self.main = ctk.CTkFrame(self.root, fg_color="transparent")
