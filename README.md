@@ -54,6 +54,7 @@ A desktop app that lets you:
 1. to add llm support for image info
 2. to add ttc
 3. try to make it less momery usage
+4. make the app run faster
 
 ---
 
