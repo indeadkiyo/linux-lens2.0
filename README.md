@@ -32,10 +32,11 @@ A desktop app that lets you:
 ```bash
   pipx install poetry
 ```
+- run ``chmode +x run.sh`` on the run.sh file so you can set up a shortcut easly
 - sooo.... if you using other os i think it supports them to since it does not use any system stuff
 - ho you also need pytorch for the ocr (the ocr is easyocr)
   [https://github.com/jaidedai/easyocr]
-- it broke again thr .bin file got messed up
+
 
 ---
 
@@ -44,7 +45,7 @@ A desktop app that lets you:
 1.  go to settings
 2.  go to keyboard
 3.  look for shortcut
-4.  then set the .bin file with a shortcut
+4.  then set the .sh file with a shortcut
 5.  and done.
 6.  i'm sorry, i dont know how to in other's
 
