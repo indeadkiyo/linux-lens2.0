@@ -11,17 +11,20 @@ from queue import Queue
 import customtkinter as ctk
 import requests
 from PIL import Image, ImageEnhance, ImageGrab, ImageTk
-import  sys
+import sys
 import time
 
+# Remove duplicate import - only need one threading import
 
-screenshot = ImageGrab.grab()
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("dark-blue")
 
+# Global variable for model preload status
+model_loading = False
+model_loaded = False
 
 class bigimagebox:
-    def __init__(self, boxa):
+    def __init__(self, boxa):  # ← Fixed: only need boxa
         self.boxa = boxa
         self.boxa.attributes("-fullscreen", True)
 
@@ -38,10 +41,14 @@ class bigimagebox:
         self.canvas.pack(fill="both", expand=True)
         self.canvas.focus_set()
 
+        # Take screenshot NOW (not at module load)
+        self.screenshot = ImageGrab.grab()
+
         try:
-            image = screenshot.resize((screen_width, screen_height), Image.LANCZOS)
-            enhancer = ImageEnhance.Brightness(image)
-            dimmed_image = enhancer.enhance(0.5)
+            # Use NEAREST for speed (LANCZOS is slow)
+            image = self.screenshot.resize((screen_width, screen_height), Image.NEAREST)
+            # Dim the image using point() instead of ImageEnhance
+            dimmed_image = image.point(lambda p: int(p * 0.5))
             self.photo = ImageTk.PhotoImage(dimmed_image)
 
             self.canvas.create_image(0, 0, image=self.photo, anchor="nw")
@@ -57,7 +64,6 @@ class bigimagebox:
         self.canvas.bind("<ButtonPress-1>", self.on_button_press)
         self.canvas.bind("<B1-Motion>", self.on_move_press)
         self.canvas.bind("<ButtonRelease-1>", self.on_button_release)
-
         self.canvas.bind("<Escape>", lambda e: self.boxa.destroy())
 
     def on_button_press(self, event):
@@ -94,7 +100,7 @@ class bigimagebox:
             return
 
         try:
-            cropped = screenshot.crop((left, top, right, bottom))
+            cropped = self.screenshot.crop((left, top, right, bottom))
 
             with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
                 cropped.save(tmp.name)
@@ -119,7 +125,7 @@ class bluat:
         self.root.configure(fg_color="#1e1e2e")
 
         # ===== GRID LAYOUT =====
-        self.root.grid_rowconfigure(1, weight=1)  # main area expands
+        self.root.grid_rowconfigure(1, weight=1)
         self.root.grid_columnconfigure(0, weight=1)
 
         # ===== TOOLBAR =====
@@ -192,6 +198,12 @@ class bluat:
         )
         self.status.grid(row=2, column=0, sticky="ew")
 
+        # Check if model is already loaded
+        if model_loaded:
+            self.status.configure(text="✅ OCR model ready")
+        else:
+            self.status.configure(text="⏳ Loading OCR model...")
+
     def imagetaken(self):
         try:
             file_path = filedialog.asksaveasfilename(
@@ -205,14 +217,15 @@ class bluat:
             )
 
             if file_path:
-                screenshot.save(file_path)
-                print("hola it saved")
+                # Take fresh screenshot
+                fresh_screenshot = ImageGrab.grab()
+                fresh_screenshot.save(file_path)
+                print("Screenshot saved!")
             else:
-                print("no hola didnt save")
+                print("No save")
 
         except Exception as e:
-            print(f"bro the save button exploded: {e}")
-
+            print(f"Save error: {e}")
 
     def search(self):
         confirm = messagebox.askyesno(
@@ -228,20 +241,33 @@ class bluat:
                 self.status.configure(text=f"❌ Upload failed: {str(e)[:50]}")
 
     def ocr(self):
+        """OCR button handler - runs in background"""
         self.status.configure(text="🔍 Running OCR...")
-        threading.Thread(target=self._ocr_worker, daemon=True).start()
+        self.textbox.delete("1.0", "end")
+        self.textbox.insert("1.0", "⏳ Processing... Please wait...\n")
+        
+        # Run OCR in background
+        thread = threading.Thread(target=self._ocr_worker, daemon=True)
+        thread.start()
 
     def _ocr_worker(self):
+        """OCR worker - runs in background thread"""
         try:
+            # This is the slow part - runs in background
             text = textmebro(self.img_path)
             text = format_text(text)
+            
+            # Update UI from main thread
             self.root.after(0, self._update_textbox, text)
             self.root.after(0, lambda: self.status.configure(text="✅ OCR complete"))
+            
         except Exception as e:
-            self.root.after(0, lambda: self.status.configure(text=f"❌ OCR failed: {str(e)[:50]}"))
+            error_msg = f"❌ OCR failed: {str(e)}"
+            self.root.after(0, lambda: self.status.configure(text=error_msg[:50]))
             self.root.after(0, lambda: self._update_textbox(f"Error: {str(e)}"))
 
     def _update_textbox(self, text):
+        """Update textbox from main thread"""
         self.textbox.delete("1.0", "end")
         self.textbox.insert("1.0", text)
 
@@ -255,7 +281,7 @@ class YesImageMe:
         self.img_path = img_path
 
         self.url = "https://tmpfiles.org/api/v1/upload"
-        with open(self.img_path, "rb") as f:  # Fixed: use context manager
+        with open(self.img_path, "rb") as f:
             responses = requests.post(self.url, files={"file": f})
 
         data = responses.json()
@@ -267,13 +293,12 @@ class YesImageMe:
         wb.open(link)
 
 
-
 def textmebro(img_path):
     try:
         text = ocr_with_layout(img_path)
-        return text if text else "i did my best ok i did not get a text"
+        return text if text else "No text detected"
     except Exception as e:
-        return f"ocr error:{e}"
+        return f"OCR error: {e}"
 
 
 def format_text(text):
@@ -281,33 +306,47 @@ def format_text(text):
     if not text:
         return "No text detected"
     
-    # Don't strip aggressively - preserve code structure
-    # Just remove excessive empty lines
     lines = text.split('\n')
     
-    # Remove trailing empty lines but keep indentation
     while lines and not lines[-1].strip():
         lines.pop()
     
-    # Remove leading empty lines
     while lines and not lines[0].strip():
         lines.pop(0)
     
-    # Don't strip individual lines - preserve code indentation!
-    # Just return joined lines
     return '\n'.join(lines)
 
 
-if __name__ == "__main__":
-    import sys  # Added for stderr printing
-    
-    boxa = tk.Tk()
-    selector = bigimagebox(boxa)
-    boxa.mainloop()
+def preload_ocr_model():
+    """Preload the OCR model in background"""
+    global model_loading, model_loaded
+    model_loading = True
+    try:
+        import sub_osr_pro
+        sub_osr_pro.get_reader()  # This loads the model
+        model_loaded = True
+        print("✅ OCR model preloaded successfully")
+    except Exception as e:
+        print(f"❌ Failed to preload OCR model: {e}")
+    finally:
+        model_loading = False
 
+
+if __name__ == "__main__":
+    # Start preloading OCR model in background
+    print("🔄 Preloading OCR model in background...")
+    threading.Thread(target=preload_ocr_model, daemon=True).start()
+    
+    # Show screenshot selector immediately (doesn't wait for model)
+    print("📸 Starting screenshot selector...")
+    boxa = tk.Tk()
+    selector = bigimagebox(boxa)  # ← Fixed: only pass boxa
+    boxa.mainloop()
+    
+    # By the time user selects area, model is probably loaded
     if hasattr(selector, "tempfile_path"):
         root = ctk.CTk()
         ui = bluat(root, selector.tempfile_path)
         root.mainloop()
     else:
-        print("No image selected - awkward...")
+        print("No image selected")
