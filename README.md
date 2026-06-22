@@ -32,6 +32,7 @@ A desktop app that lets you:
 ```bash
   pipx install poetry
 ```
+- ``poetry install``
 - run ``chmode +x run.sh`` on the run.sh file so you can set up a shortcut easly
 - sooo.... if you using other os i think it supports them to since it does not use any system stuff
 - ho you also need pytorch for the ocr (the ocr is easyocr)
